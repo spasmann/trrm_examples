@@ -62,7 +62,7 @@ upper_right = (64.26/2, 64.26/2, 64.26/2)
 uniform_dist = openmc.stats.Box(lower_left, upper_right)
 settings_file.random_ray['ray_source'] = openmc.IndependentSource(space=uniform_dist)
 settings_file.random_ray['distance_inactive'] = 20.0
-settings_file.random_ray['distance_active'] = 220.0
+settings_file.random_ray['distance_active'] = 200.0
 
 
 ###############################################################################
@@ -865,4 +865,4 @@ for sim in range(seeds.size):
     model.run()
 
     os.rename(f"statepoint.{model.settings.batches}.h5",
-                f"results/random_rays/sim_{sim+1}.h5")
+                f"results/halton_rays/sim_{sim+1}.h5")
