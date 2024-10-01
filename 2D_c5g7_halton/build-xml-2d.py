@@ -51,7 +51,7 @@ settings_file = openmc.Settings()
 settings_file.energy_mode = "multi-group"
 settings_file.batches = 1000
 settings_file.inactive = 600
-settings_file.particles = 1750
+settings_file.particles = 1500
 settings_file.run_mode = 'eigenvalue'
 settings_file.output = {'tallies': False, 'summary': False}
 
@@ -859,7 +859,7 @@ model.xs_data = mg_cross_sections_file
 model.tallies = tallies_file
 
 # model.export_to_model_xml()
-seeds = np.random.random_integers(1, high=1E8, size=20)
+seeds = np.random.randint(1, high=1E8, size=20)
 for sim in range(seeds.size):
     model.settings.seed = seeds[sim]
     model.run()
