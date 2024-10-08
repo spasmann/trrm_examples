@@ -51,8 +51,11 @@ def get_err(fname):
 
     return RMS, AAPE, MAX, TIME
 
+def figure_of_merit(error, time):
+    return 1 / (error.mean()**2 * time.mean())
+
 N = 20
-sim_num = np.arange(1,N)
+sim_num = np.arange(1,N+1)
 RMS_halton = np.zeros(N)
 AAPE_halton = np.zeros(N)
 MAX_halton = np.zeros(N)
@@ -64,18 +67,18 @@ MAX_random = np.zeros(N)
 TIME_random = np.zeros(N)
 
 for i in sim_num:
-    fname_halton = f"results/halton_rays/sim_{i}.h5"
-    fname_random = f"results/random_rays/sim_{i}.h5"
-    RMS_halton[i], AAPE_halton[i], MAX_halton[i], TIME_halton[i] = get_err(fname_halton)
-    RMS_random[i], AAPE_random[i], MAX_random[i], TIME_random[i] = get_err(fname_random)
+    fname_halton = f"results/N_particles_2000/halton_rays/sim_{i}.h5"
+    fname_random = f"results/N_particles_2000/random_rays/sim_{i}.h5"
+    RMS_halton[i-1], AAPE_halton[i-1], MAX_halton[i-1], TIME_halton[i-1] = get_err(fname_halton)
+    RMS_random[i-1], AAPE_random[i-1], MAX_random[i-1], TIME_random[i-1] = get_err(fname_random)
 
-RMS_FOM_halton = 1 / (RMS_halton.mean()**2 * TIME_halton.mean())
-AAPE_FOM_halton = 1 / (AAPE_halton.mean()**2 * TIME_halton.mean())
-MAX_FOM_halton = 1 / (MAX_halton.mean()**2 * TIME_halton.mean())
+RMS_FOM_halton = figure_of_merit(RMS_halton, TIME_halton)
+AAPE_FOM_halton = figure_of_merit(AAPE_halton, TIME_halton)
+MAX_FOM_halton = figure_of_merit(MAX_halton, TIME_halton)
 
-RMS_FOM_random = 1 / (RMS_random.mean()**2 * TIME_random.mean())
-AAPE_FOM_random = 1 / (AAPE_random.mean()**2 * TIME_random.mean())
-MAX_FOM_random = 1 / (MAX_random.mean()**2 * TIME_random.mean())
+RMS_FOM_random = figure_of_merit(RMS_random, TIME_random)
+AAPE_FOM_random = figure_of_merit(AAPE_random, TIME_random)
+MAX_FOM_random = figure_of_merit(MAX_random, TIME_random)
 
 print("\n------> Halton Ray <------")
 print("RMS Mean  = ", RMS_halton.mean())
