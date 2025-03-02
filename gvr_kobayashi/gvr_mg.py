@@ -2,8 +2,10 @@ import numpy as np
 
 import openmc
 
+import os
 
-def create_random_ray_model():
+
+def create_kobayashi_model():
     ###############################################################################
     # Create multigroup data
 
@@ -184,9 +186,9 @@ def create_random_ray_model():
     # Instantiate a Settings object, set all runtime parameters, and export to XML
     settings = openmc.Settings()
     settings.energy_mode = "multi-group"
-    settings.batches = 1600
+    settings.batches = 100
     #settings.inactive = 5
-    settings.particles = 1000000
+    settings.particles = 10000
     settings.run_mode = 'fixed source'
 
     #settings.random_ray_distance_active = 100.0
@@ -217,7 +219,26 @@ def create_random_ray_model():
     #settings.export_to_xml()
 
     ###############################################################################
+    # Define Weight Windows
+    
+    ww_mesh = openmc.RegularMesh()
+    ww_mesh.dimension = (x_dim, y_dim, z_dim)
+    ww_mesh.lower_left = (0.0, 0.0, 0.0)
+    ww_mesh.upper_right = (x, y, z)
+
+    wwg = openmc.WeightWindowGenerator(mesh=ww_mesh, energy_bounds=ebins, max_realizations=100)
+    wwg.update_parameters = {'ratio': 5.0, 'threshold': 0.8, 'value': 'mean'}
+    settings.weight_window_generators = wwg
+    settings.weight_window_checkpoints = {'collision': True, 'surface': True}
+
+    if os.path.exists('weight_windows.h5'):
+        settings.weight_windows_file = 'weight_windows.h5'
+        settings.weight_windows_on = True
+
+    ###############################################################################
     # Define tallies
+    
+    estimator = 'tracklength'
 
     # Create a mesh that will be used for tallying
     #mesh = openmc.RegularMesh()
@@ -229,13 +250,11 @@ def create_random_ray_model():
     #mesh_filter = openmc.MeshFilter(mesh)
 
     # Now use the mesh filter in a tally and indicate what scores are desired
-    #tally = openmc.Tally(name="Mesh tally")
+    #tally = openmc.Tally(name="Full Mesh tally")
     #tally.filters = [mesh_filter]
     #tally.scores = ['flux']
-    #tally.estimator = 'collision'
-    #tally.estimator = 'analog'
+    #tally.estimator = estimator
 
-    estimator = 'tracklength'
 
     # Case 3A
     mesh_3A = openmc.RegularMesh()
@@ -322,7 +341,6 @@ def create_random_ray_model():
 
     # Instantiate a Plots collection and export to XML
     plot_file = openmc.Plots([plot])
-    #plot_file.export_to_xml()
     
     model = openmc.model.Model()
     model.geometry = geometry
@@ -330,9 +348,9 @@ def create_random_ray_model():
     model.settings = settings
     model.xs_data = mg_cross_sections_file
     model.tallies = tallies
-    model.plots = plot_file
+    #model.plots = plot_file
 
     return model
 
-model = create_random_ray_model()
+model = create_kobayashi_model()
 model.export_to_model_xml()

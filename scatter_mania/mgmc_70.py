@@ -7,68 +7,29 @@ def create_random_ray_model():
     ###############################################################################
     # Create multigroup data
 
-    # Instantiate the energy group data
-    ebins = [1e-5, 20.0e6]
-    groups = openmc.mgxs.EnergyGroups(group_edges=ebins)
-    
-    # High scattering ratio means system is all scattering
-    # Low means fully absorbing
-    scattering_ratio = 0.5
-
-    source_total_xs = 0.1
-    source_mat_data = openmc.XSdata('source', groups)
-    source_mat_data.order = 0
-    source_mat_data.set_total([source_total_xs])
-    source_mat_data.set_absorption([source_total_xs * (1.0 - scattering_ratio)])
-    source_mat_data.set_scatter_matrix(np.rollaxis(np.array([[[source_total_xs * scattering_ratio]]]),0,3))
-    
-    void_total_xs = 1.0e-4
-    void_mat_data = openmc.XSdata('void', groups)
-    void_mat_data.order = 0
-    void_mat_data.set_total([void_total_xs])
-    void_mat_data.set_absorption([void_total_xs * (1.0 - scattering_ratio)])
-    void_mat_data.set_scatter_matrix(np.rollaxis(np.array([[[void_total_xs * scattering_ratio]]]),0,3))
-    
-    shield_total_xs = 0.1
-    shield_mat_data = openmc.XSdata('shield', groups)
-    shield_mat_data.order = 0
-    shield_mat_data.set_total([shield_total_xs])
-    shield_mat_data.set_absorption([shield_total_xs * (1.0 - scattering_ratio)])
-    shield_mat_data.set_scatter_matrix(np.rollaxis(np.array([[[shield_total_xs * scattering_ratio]]]),0,3))
-
-    mg_cross_sections_file = openmc.MGXSLibrary(groups)
-    mg_cross_sections_file.add_xsdatas([source_mat_data, void_mat_data, shield_mat_data])
-    mg_cross_sections_file.export_to_hdf5()
-
     ###############################################################################
     # Create materials for the problem
 
     # Instantiate some Macroscopic Data
-    source_data = openmc.Macroscopic('source')
-    void_data   = openmc.Macroscopic('void')
-    shield_data = openmc.Macroscopic('shield')
+    void_data   = openmc.Macroscopic('heavy water')
+    shield_data = openmc.Macroscopic('borated water')
 
-    # Instantiate some Materials and register the appropriate Macroscopic objects
-    source_mat = openmc.Material(name='source')
-    source_mat.set_density('macro', 1.0)
-    source_mat.add_macroscopic(source_data)
-    
-    void_mat = openmc.Material(name='void')
+    void_mat = openmc.Material(name='heavy water')
     void_mat.set_density('macro', 1.0)
     void_mat.add_macroscopic(void_data)
     
-    shield_mat = openmc.Material(name='shield')
+    shield_mat = openmc.Material(name='borated water')
     shield_mat.set_density('macro', 1.0)
     shield_mat.add_macroscopic(shield_data)
 
     # Instantiate a Materials collection and export to XML
-    materials_file = openmc.Materials([source_mat, void_mat, shield_mat])
+    materials_file = openmc.Materials([void_mat, shield_mat])
     materials_file.cross_sections = "mgxs.h5"
 
     ###############################################################################
     # Define problem geometry
     
-    source_cell = openmc.Cell(fill=source_mat, name='infinite source region')
+    source_cell = openmc.Cell(fill=void_mat, name='infinite source region')
     void_cell = openmc.Cell(fill=void_mat, name='infinite void region')
     shield_cell = openmc.Cell(fill=shield_mat, name='infinite shield region')
     
@@ -184,9 +145,9 @@ def create_random_ray_model():
     # Instantiate a Settings object, set all runtime parameters, and export to XML
     settings = openmc.Settings()
     settings.energy_mode = "multi-group"
-    settings.batches = 1600
+    settings.batches = 100
     #settings.inactive = 5
-    settings.particles = 1000000
+    settings.particles = 100000
     settings.run_mode = 'fixed source'
 
     #settings.random_ray_distance_active = 100.0
@@ -202,7 +163,7 @@ def create_random_ray_model():
     
     # Create the neutron source in the bottom right of the moderator
     strengths = [1.0] # Good - fast group appears largest (besides most thermal)
-    midpoints = [100.0]
+    midpoints = [7.5e6]
     energy_distribution = openmc.stats.Discrete(x=midpoints,p=strengths)
     
     lower_left_src = [0.0, 0.0, 0.0]
@@ -273,41 +234,8 @@ def create_random_ray_model():
     tally_3C.scores = ['flux']
     tally_3C.estimator = estimator
 
-    # Source
-    source_filter = openmc.MaterialFilter(source_mat)
-    tally_source = openmc.Tally(name="Source")
-    tally_source.filters = [source_filter]
-    tally_source.scores = ['flux']
-    tally_source.estimator = estimator
-    
-    # Void
-    void_filter = openmc.MaterialFilter(void_mat)
-    tally_void = openmc.Tally(name="Void")
-    tally_void.filters = [void_filter]
-    tally_void.scores = ['flux']
-    tally_void.estimator = estimator
-    
-    # Shield
-    shield_filter = openmc.MaterialFilter(shield_mat)
-    tally_shield = openmc.Tally(name="Shield")
-    tally_shield.filters = [shield_filter]
-    tally_shield.scores = ['flux']
-    tally_shield.estimator = estimator
-    
-    # Far Cell
-    mesh_far = openmc.RegularMesh()
-    mesh_far.dimension = (1, 1, 1)
-    mesh_far.lower_left = (50.0, 90.0, 50.0)
-    mesh_far.upper_right = (60, 100.0, 60.0)
-    mesh_filter_far = openmc.MeshFilter(mesh_far)
-    
-    tally_far = openmc.Tally(name="Case far")
-    tally_far.filters = [mesh_filter_far]
-    tally_far.scores = ['flux']
-    tally_far.estimator = estimator
-
     # Instantiate a Tallies collection and export to XML
-    tallies = openmc.Tallies([tally_3A, tally_3B, tally_3C, tally_source, tally_void, tally_shield, tally_far])
+    tallies = openmc.Tallies([tally_3A, tally_3B, tally_3C])
 
 
     ###############################################################################
@@ -328,7 +256,7 @@ def create_random_ray_model():
     model.geometry = geometry
     model.materials = materials_file
     model.settings = settings
-    model.xs_data = mg_cross_sections_file
+    #model.xs_data = mg_cross_sections_file
     model.tallies = tallies
     model.plots = plot_file
 
